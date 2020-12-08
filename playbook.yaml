@@ -1,0 +1,31 @@
+---
+- hosts: all
+  become: true
+  tasks:
+    - name: Install epel-release and Java Openjdk
+      yum: name={{ item }} state=present
+      with_items:
+      - epel-release
+      - java-1.8.0-openjdk.x86_64
+    - name: Downloading Apache tomcat
+      unarchive:
+        src: https://downloads.apache.org/tomcat/tomcat-8/v8.5.59/bin/apache-tomcat-8.5.59.tar.gz 
+        dest: /home/shahid/
+        remote_src: yes
+    - name: Setup Permissions
+      command: "{{ item }}"
+      become: yes
+      with_items:
+        - cd /home/shahid/
+        - chown -R shahid:shahid /home/shahid/apache-tomcat-8.5.59
+        - chmod -R +x /home/shahid/apache-tomcat-8.5.59
+    - name: Copying Systemd unit file for Apache
+      copy:
+        src: /home/shahid/tomcat.service
+        dest: /etc/systemd/system/tomcat.service
+    - name: Starting Apache service
+      service: name=tomcat state=stop enabled=no
+    - firewalld:
+        port: 80/tcp
+        permanent: yes
+        state: enabled
